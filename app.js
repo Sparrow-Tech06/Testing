@@ -5,16 +5,6 @@ import {
     signInWithEmailAndPassword,
     onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/11.7.1/firebase-auth.js";
-import { 
-    getFirestore, 
-    collection, 
-    doc, 
-    setDoc, 
-    getDoc,
-    query,
-    where,
-    getDocs
-} from "https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -30,25 +20,6 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
-
-// Generate or get Device ID
-function getDeviceId() {
-    let deviceId = localStorage.getItem('deviceId');
-    if (!deviceId) {
-        deviceId = 'dev_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('deviceId', deviceId);
-    }
-    return deviceId;
-}
-
-// Check if device already has an account
-async function checkDeviceAccount(deviceId) {
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('deviceId', '==', deviceId));
-    const querySnapshot = await getDocs(q);
-    return !querySnapshot.empty;
-}
 
 // DOM Elements
 const signupForm = document.getElementById('signup-form');
@@ -76,23 +47,9 @@ signupForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('signup-email').value;
     const password = document.getElementById('signup-password').value;
-    const deviceId = getDeviceId();
 
     try {
-        // Check if device already has an account
-        const deviceHasAccount = await checkDeviceAccount(deviceId);
-        if (deviceHasAccount) {
-            throw new Error('This device already has an account. Only one account per device is allowed.');
-        }
-
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        
-        // Save user data with device ID
-        await setDoc(doc(db, 'users', userCredential.user.uid), {
-            email: email,
-            deviceId: deviceId,
-            createdAt: new Date().toISOString()
-        });
         
         await Swal.fire({
             icon: 'success',
@@ -106,7 +63,6 @@ signupForm.addEventListener('submit', async (e) => {
         window.location.href = 'dashboard.html';
     } catch (error) {
         let errorMessage = error.message;
-        
         if (error.code === 'auth/email-already-in-use') {
             errorMessage = 'This email is already registered. Please login instead.';
         } else if (error.code === 'auth/weak-password') {
@@ -129,18 +85,6 @@ loginForm.addEventListener('submit', async (e) => {
 
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        
-        // Verify device ID matches
-        const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-        if (userDoc.exists()) {
-            const storedDeviceId = userDoc.data().deviceId;
-            const currentDeviceId = getDeviceId();
-            
-            if (storedDeviceId !== currentDeviceId) {
-                await signOut(auth);
-                throw new Error('This account was created on a different device. Please use the original device.');
-            }
-        }
         
         await Swal.fire({
             icon: 'success',
