@@ -1,14 +1,12 @@
-// Firebase imports
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js";
 import { 
     getAuth, 
     createUserWithEmailAndPassword, 
-    signInWithEmailAndPassword, 
-    signOut,
+    signInWithEmailAndPassword,
     onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/11.7.1/firebase-auth.js";
 
-// Your web app's Firebase configuration
+// Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAShqykH1iT5-pWZxG1DswmkFB8rWn5fxM",
     authDomain: "text-auth-1ab4c.firebaseapp.com",
@@ -26,28 +24,22 @@ const auth = getAuth(app);
 // DOM Elements
 const signupForm = document.getElementById('signup-form');
 const loginForm = document.getElementById('login-form');
-const logoutBtn = document.getElementById('logout-btn');
 const signupLink = document.getElementById('signup-link');
 const loginLink = document.getElementById('login-link');
 const signupContainer = document.getElementById('signup-container');
 const loginContainer = document.getElementById('login-container');
-const dashboard = document.getElementById('dashboard');
-const userEmail = document.getElementById('user-email');
-const errorMessage = document.getElementById('error-message');
 
-// Form switch karna (SignUp <-> Login)
+// Form switch between SignUp and Login
 signupLink.addEventListener('click', (e) => {
     e.preventDefault();
-    loginContainer.classList.add('hidden');
-    signupContainer.classList.remove('hidden');
-    errorMessage.classList.add('hidden');
+    loginContainer.classList.add('d-none');
+    signupContainer.classList.remove('d-none');
 });
 
 loginLink.addEventListener('click', (e) => {
     e.preventDefault();
-    signupContainer.classList.add('hidden');
-    loginContainer.classList.remove('hidden');
-    errorMessage.classList.add('hidden');
+    signupContainer.classList.add('d-none');
+    loginContainer.classList.remove('d-none');
 });
 
 // Sign Up Form Submission
@@ -58,10 +50,30 @@ signupForm.addEventListener('submit', async (e) => {
 
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        // Sign up successful
-        showDashboard(userCredential.user);
+        
+        await Swal.fire({
+            icon: 'success',
+            title: 'Account Created!',
+            text: 'You have successfully signed up!',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        
+        // Redirect to dashboard
+        window.location.href = 'dashboard.html';
     } catch (error) {
-        showError(error.message);
+        let errorMessage = error.message;
+        if (error.code === 'auth/email-already-in-use') {
+            errorMessage = 'This email is already registered. Please login instead.';
+        } else if (error.code === 'auth/weak-password') {
+            errorMessage = 'Password should be at least 6 characters';
+        }
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Sign Up Failed',
+            text: errorMessage
+        });
     }
 });
 
@@ -73,50 +85,36 @@ loginForm.addEventListener('submit', async (e) => {
 
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        // Login successful
-        showDashboard(userCredential.user);
+        
+        await Swal.fire({
+            icon: 'success',
+            title: 'Login Successful!',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        
+        // Redirect to dashboard
+        window.location.href = 'dashboard.html';
     } catch (error) {
-        showError(error.message);
+        let errorMessage = error.message;
+        if (error.code === 'auth/user-not-found') {
+            errorMessage = 'No account found with this email. Please sign up first.';
+        } else if (error.code === 'auth/wrong-password') {
+            errorMessage = 'Incorrect password. Please try again.';
+        }
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Login Failed',
+            text: errorMessage
+        });
     }
 });
 
-// Logout Button
-logoutBtn.addEventListener('click', async () => {
-    try {
-        await signOut(auth);
-        // Logout successful
-        signupContainer.classList.remove('hidden');
-        loginContainer.classList.add('hidden');
-        dashboard.classList.add('hidden');
-    } catch (error) {
-        showError(error.message);
-    }
-});
-
-// Auth State Observer (user logged in/out check karna)
+// Check auth state to redirect if already logged in
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        // User is signed in
-        showDashboard(user);
-    } else {
-        // User is signed out
-        signupContainer.classList.remove('hidden');
-        loginContainer.classList.add('hidden');
-        dashboard.classList.add('hidden');
+        // User is signed in, redirect to dashboard
+        window.location.href = 'dashboard.html';
     }
 });
-
-// Dashboard dikhana
-function showDashboard(user) {
-    signupContainer.classList.add('hidden');
-    loginContainer.classList.add('hidden');
-    dashboard.classList.remove('hidden');
-    userEmail.textContent = user.email;
-    errorMessage.classList.add('hidden');
-}
-
-// Error message dikhana
-function showError(message) {
-    errorMessage.textContent = message;
-    errorMessage.classList.remove('hidden');
-}
