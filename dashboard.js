@@ -4,13 +4,8 @@ import {
     signOut,
     onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/11.7.1/firebase-auth.js";
-import { 
-    getFirestore,
-    doc,
-    getDoc
-} from "https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js";
 
-// Firebase configuration
+// Firebase configuration (same as app.js)
 const firebaseConfig = {
     apiKey: "AIzaSyAShqykH1iT5-pWZxG1DswmkFB8rWn5fxM",
     authDomain: "text-auth-1ab4c.firebaseapp.com",
@@ -24,7 +19,6 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
 
 // DOM Elements
 const userEmail = document.getElementById('user-email');
@@ -32,26 +26,11 @@ const userCreated = document.getElementById('user-created');
 const logoutBtn = document.getElementById('logout-btn');
 
 // Display user info
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, (user) => {
     if (user) {
         userEmail.textContent = user.email;
-        
-        // Get additional user data from Firestore
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-            const userData = userDoc.data();
-            const creationDate = new Date(userData.createdAt);
-            userCreated.textContent = creationDate.toLocaleString();
-            
-            // Show device info (for demo purposes)
-            Swal.fire({
-                title: 'Device Verified',
-                text: `This account is registered with device ID: ${userData.deviceId}`,
-                icon: 'info',
-                timer: 3000,
-                showConfirmButton: false
-            });
-        }
+        const creationDate = new Date(user.metadata.creationTime);
+        userCreated.textContent = creationDate.toLocaleString();
     } else {
         // No user is signed in, redirect to login
         window.location.href = 'index.html';
